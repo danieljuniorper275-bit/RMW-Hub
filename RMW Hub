@@ -1,0 +1,611 @@
+--[[
+    ╔══════════════════════════════════════════╗
+    ║         RmW Hub - Roube um Ovo           ║
+    ║         Inspired by Chilli Hub           ║
+    ╚══════════════════════════════════════════╝
+]]
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+local StarterGui = game:GetService("StarterGui")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- Configurações
+local Config = {
+    AutoSteal = false,
+    AutoHatchEgg = false,
+    AutoCollectEggs = false,
+    AutoSell = false,
+    AutoRebirth = false,
+    EggStealRange = 30,
+    EggCollectRange = 20,
+    WalkSpeed = 16,
+    JumpPower = 50,
+    SelectedEgg = "Normal Egg",
+    AutoBuyEgg = false,
+    AntiAFK = true,
+    ESP = false,
+    Notifications = true,
+}
+
+-- Cores do tema RmW Hub
+local Theme = {
+    Background = Color3.fromRGB(15, 15, 20),
+    Secondary = Color3.fromRGB(25, 25, 35),
+    Accent = Color3.fromRGB(138, 43, 226), -- Roxo
+    Accent2 = Color3.fromRGB(0, 200, 255), -- Ciano
+    Text = Color3.fromRGB(240, 240, 240),
+    SubText = Color3.fromRGB(150, 150, 160),
+    Success = Color3.fromRGB(0, 255, 127),
+    Error = Color3.fromRGB(255, 60, 60),
+    Warning = Color3.fromRGB(255, 180, 0),
+}
+
+-- Instâncias do jogo (adapte conforme o jogo)
+local GameObjects = {
+    Eggs = {},
+    EggSpawns = {},
+}
+
+-- ============ CRIAÇÃO DA UI ============
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RmWHub"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = game.CoreGui
+
+-- Frame Principal
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 520, 0, 340)
+MainFrame.Position = UDim2.new(0.5, -260, 0.5, -170)
+MainFrame.BackgroundColor3 = Theme.Background
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Theme.Accent
+MainStroke.Thickness = 2
+MainStroke.Transparency = 0.3
+MainStroke.Parent = MainFrame
+
+-- Sidebar
+local Sidebar = Instance.new("Frame")
+Sidebar.Name = "Sidebar"
+Sidebar.Size = UDim2.new(0, 130, 1, 0)
+Sidebar.BackgroundColor3 = Theme.Secondary
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = MainFrame
+
+local SidebarCorner = Instance.new("UICorner")
+SidebarCorner.CornerRadius = UDim.new(0, 12)
+SidebarCorner.Parent = Sidebar
+
+-- Header
+local Header = Instance.new("Frame")
+Header.Name = "Header"
+Header.Size = UDim2.new(1, 0, 0, 45)
+Header.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+Header.BorderSizePixel = 0
+Header.Parent = MainFrame
+
+local HeaderCorner = Instance.new("UICorner")
+HeaderCorner.CornerRadius = UDim.new(0, 12)
+HeaderCorner.Parent = Header
+
+local HeaderFix = Instance.new("Frame")
+HeaderFix.Size = UDim2.new(1, 0, 0, 15)
+HeaderFix.Position = UDim2.new(0, 0, 1, -15)
+HeaderFix.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+HeaderFix.BorderSizePixel = 0
+HeaderFix.Parent = Header
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -20, 1, 0)
+Title.Position = UDim2.new(0, 15, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "🥚 RmW Hub - Roube um Ovo"
+Title.TextColor3 = Theme.Text
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Header
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -40, 0, 8)
+CloseBtn.BackgroundColor3 = Theme.Error
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Theme.Text
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 14
+CloseBtn.Parent = Header
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 8)
+CloseCorner.Parent = CloseBtn
+
+-- Botão Minimizar
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -75, 0, 8)
+MinBtn.BackgroundColor3 = Theme.Warning
+MinBtn.Text = "—"
+MinBtn.TextColor3 = Theme.Text
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 14
+MinBtn.Parent = Header
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 8)
+MinCorner.Parent = MinBtn
+
+-- Container de Tabs
+local TabContainer = Instance.new("Frame")
+TabContainer.Name = "TabContainer"
+TabContainer.Size = UDim2.new(1, -140, 1, -55)
+TabContainer.Position = UDim2.new(0, 135, 0, 50)
+TabContainer.BackgroundTransparency = 1
+TabContainer.Parent = MainFrame
+
+-- ============ FUNÇÕES AUXILIARES ============
+local function CreateButton(parent, text, yPos)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -10, 0, 34)
+    btn.Position = UDim2.new(0, 5, 0, yPos)
+    btn.BackgroundColor3 = Theme.Secondary
+    btn.Text = text
+    btn.TextColor3 = Theme.Text
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 13
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.Parent = parent
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
+    
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 10)
+    padding.Parent = btn
+    
+    return btn
+end
+
+local function CreateToggle(parent, text, yPos, default, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -10, 0, 34)
+    frame.Position = UDim2.new(0, 5, 0, yPos)
+    frame.BackgroundColor3 = Theme.Secondary
+    frame.Parent = parent
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -55, 1, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Theme.Text
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 13
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+    
+    local toggle = Instance.new("TextButton")
+    toggle.Size = UDim2.new(0, 40, 0, 20)
+    toggle.Position = UDim2.new(1, -48, 0.5, -10)
+    toggle.BackgroundColor3 = default and Theme.Success or Color3.fromRGB(60, 60, 70)
+    toggle.Text = ""
+    toggle.Parent = frame
+    
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(1, 0)
+    toggleCorner.Parent = toggle
+    
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0, 16, 0, 16)
+    knob.Position = default and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    knob.Parent = toggle
+    
+    local knobCorner = Instance.new("UICorner")
+    knobCorner.CornerRadius = UDim.new(1, 0)
+    knobCorner.Parent = knob
+    
+    local state = default
+    
+    toggle.MouseButton1Click:Connect(function()
+        state = not state
+        TweenService:Create(toggle, TweenInfo.new(0.2), {
+            BackgroundColor3 = state and Theme.Success or Color3.fromRGB(60, 60, 70)
+        }):Play()
+        TweenService:Create(knob, TweenInfo.new(0.2), {
+            Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+        }):Play()
+        if callback then callback(state) end
+    end)
+    
+    return frame, function() return state end
+end
+
+local function CreateSlider(parent, text, yPos, min, max, default, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -10, 0, 50)
+    frame.Position = UDim2.new(0, 5, 0, yPos)
+    frame.BackgroundColor3 = Theme.Secondary
+    frame.Parent = parent
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -20, 0, 20)
+    label.Position = UDim2.new(0, 10, 0, 5)
+    label.BackgroundTransparency = 1
+    label.Text = text .. ": " .. default
+    label.TextColor3 = Theme.Text
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 12
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+    
+    local sliderBg = Instance.new("Frame")
+    sliderBg.Size = UDim2.new(1, -20, 0, 8)
+    sliderBg.Position = UDim2.new(0, 10, 0, 32)
+    sliderBg.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    sliderBg.Parent = frame
+    
+    local sliderBgCorner = Instance.new("UICorner")
+    sliderBgCorner.CornerRadius = UDim.new(1, 0)
+    sliderBgCorner.Parent = sliderBg
+    
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    fill.BackgroundColor3 = Theme.Accent
+    fill.Parent = sliderBg
+    
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim.new(1, 0)
+    fillCorner.Parent = fill
+    
+    local dragging = false
+    
+    local function updateSlider(input)
+        local pos = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
+        local value = math.floor(min + (max - min) * pos)
+        fill.Size = UDim2.new(pos, 0, 1, 0)
+        label.Text = text .. ": " .. value
+        if callback then callback(value) end
+    end
+    
+    sliderBg.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            updateSlider(input)
+        end
+    end)
+    
+    sliderBg.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateSlider(input)
+        end
+    end)
+    
+    return frame
+end
+
+-- ============ SISTEMA DE NOTIFICAÇÃO ============
+local function Notify(title, message, duration)
+    if not Config.Notifications then return end
+    duration = duration or 3
+    
+    local notif = Instance.new("Frame")
+    notif.Size = UDim2.new(0, 280, 0, 60)
+    notif.Position = UDim2.new(1, -300, 0, 60)
+    notif.BackgroundColor3 = Theme.Secondary
+    notif.Parent = ScreenGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = notif
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Theme.Accent
+    stroke.Thickness = 2
+    stroke.Parent = notif
+    
+    local titleLbl = Instance.new("TextLabel")
+    titleLbl.Size = UDim2.new(1, -20, 0, 25)
+    titleLbl.Position = UDim2.new(0, 15, 0, 8)
+    titleLbl.BackgroundTransparency = 1
+    titleLbl.Text = "🥚 " .. title
+    titleLbl.TextColor3 = Theme.Accent2
+    titleLbl.Font = Enum.Font.GothamBold
+    titleLbl.TextSize = 14
+    titleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    titleLbl.Parent = notif
+    
+    local msgLbl = Instance.new("TextLabel")
+    msgLbl.Size = UDim2.new(1, -20, 0, 20)
+    msgLbl.Position = UDim2.new(0, 15, 0, 32)
+    msgLbl.BackgroundTransparency = 1
+    msgLbl.Text = message
+    msgLbl.TextColor3 = Theme.SubText
+    msgLbl.Font = Enum.Font.Gotham
+    msgLbl.TextSize = 12
+    msgLbl.TextXAlignment = Enum.TextXAlignment.Left
+    msgLbl.Parent = notif
+    
+    notif.Position = UDim2.new(1, 50, 0, 60)
+    TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+        Position = UDim2.new(1, -300, 0, 60)
+    }):Play()
+    
+    task.delay(duration, function()
+        local out = TweenService:Create(notif, TweenInfo.new(0.3), {
+            Position = UDim2.new(1, 50, 0, 60)
+        })
+        out:Play()
+        out.Completed:Wait()
+        notif:Destroy()
+    end)
+end
+
+-- ============ SISTEMA DE TABS ============
+local Tabs = {}
+local ActiveTab = nil
+
+local function CreateTab(name, icon)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -20, 0, 36)
+    btn.Position = UDim2.new(0, 10, 0, 55 + (#Tabs * 42))
+    btn.BackgroundColor3 = Theme.Background
+    btn.Text = "  " .. icon .. "  " .. name
+    btn.TextColor3 = Theme.SubText
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 13
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.Parent = Sidebar
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
+    
+    local page = Instance.new("ScrollingFrame")
+    page.Size = UDim2.new(1, 0, 1, 0)
+    page.BackgroundTransparency = 1
+    page.BorderSizePixel = 0
+    page.ScrollBarThickness = 4
+    page.ScrollBarImageColor3 = Theme.Accent
+    page.CanvasSize = UDim2.new(0, 0, 0, 0)
+    page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    page.Visible = false
+    page.Parent = TabContainer
+    
+    local tabData = { btn = btn, page = page, name = name }
+    table.insert(Tabs, tabData)
+    
+    btn.MouseButton1Click:Connect(function()
+        for _, t in pairs(Tabs) do
+            t.page.Visible = false
+            TweenService:Create(t.btn, TweenInfo.new(0.2), {
+                BackgroundColor3 = Theme.Background,
+                TextColor3 = Theme.SubText
+            }):Play()
+        end
+        page.Visible = true
+        TweenService:Create(btn, TweenInfo.new(0.2), {
+            BackgroundColor3 = Theme.Accent,
+            TextColor3 = Theme.Text
+        }):Play()
+        ActiveTab = name
+    end)
+    
+    return page
+end
+
+-- ============ TABS ============
+local StealTab = CreateTab("Roubar", "🥚")
+local HatchTab = CreateTab("Chocar", "🐣")
+local SellTab = CreateTab("Vender", "💰")
+local PlayerTab = CreateTab("Player", "👤")
+local VisualTab = CreateTab("Visual", "👁")
+local MiscTab = CreateTab("Misc", "⚙")
+
+-- Ativar primeira tab
+Tabs[1].btn:GetPropertyChangedSignal("Text"):Connect(function() end)
+Tabs[1].page.Visible = true
+Tabs[1].btn.BackgroundColor3 = Theme.Accent
+Tabs[1].btn.TextColor3 = Theme.Text
+
+-- ============ ABA ROUBAR ============
+CreateToggle(StealTab, "Auto Steal (Roubar Ovos)", 5, false, function(state)
+    Config.AutoSteal = state
+    Notify("Auto Steal", state and "Ativado" or "Desativado")
+end)
+
+CreateToggle(StealTab, "Auto Collect Eggs", 45, false, function(state)
+    Config.AutoCollectEggs = state
+    Notify("Auto Collect", state and "Ativado" or "Desativado")
+end)
+
+CreateToggle(StealTab, "ESP nos Ovos", 85, false, function(state)
+    Config.ESP = state
+    Notify("ESP", state and "Ativado" or "Desativado")
+end)
+
+CreateSlider(StealTab, "Raio de Roubo", 125, 5, 100, 30, function(v)
+    Config.EggStealRange = v
+end)
+
+CreateButton(StealTab, "  🔄  Atualizar Lista de Ovos", 185).MouseButton1Click:Connect(function()
+    GameObjects.Eggs = {}
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and (obj.Name:lower():find("egg") or obj.Name:lower():find("ovo")) then
+            table.insert(GameObjects.Eggs, obj)
+        end
+    end
+    Notify("Ovos", #GameObjects.Eggs .. " ovos encontrados!")
+end)
+
+-- ============ ABA CHOCAR ============
+CreateToggle(HatchTab, "Auto Hatch Egg", 5, false, function(state)
+    Config.AutoHatchEgg = state
+    Notify("Auto Hatch", state and "Ativado" or "Desativado")
+end)
+
+CreateToggle(HatchTab, "Auto Buy Egg", 45, false, function(state)
+    Config.AutoBuyEgg = state
+    Notify("Auto Buy", state and "Ativado" or "Desativado")
+end)
+
+local eggTypes = {"Normal Egg", "Rare Egg", "Epic Egg", "Legendary Egg", "Mythical Egg"}
+local selectedEggIndex = 1
+
+local EggSelector = Instance.new("TextButton")
+EggSelector.Size = UDim2.new(1, -10, 0, 34)
+EggSelector.Position = UDim2.new(0, 5, 0, 85)
+EggSelector.BackgroundColor3 = Theme.Secondary
+EggSelector.Text = "  🥚  Egg: " .. eggTypes[selectedEggIndex]
+EggSelector.TextColor3 = Theme.Text
+EggSelector.Font = Enum.Font.Gotham
+EggSelector.TextSize = 13
+EggSelector.TextXAlignment = Enum.TextXAlignment.Left
+EggSelector.Parent = HatchTab
+
+local ESCorner = Instance.new("UICorner")
+ESCorner.CornerRadius = UDim.new(0, 8)
+ESCorner.Parent = EggSelector
+
+EggSelector.MouseButton1Click:Connect(function()
+    selectedEggIndex = selectedEggIndex % #eggTypes + 1
+    EggSelector.Text = "  🥚  Egg: " .. eggTypes[selectedEggIndex]
+    Config.SelectedEgg = eggTypes[selectedEggIndex]
+end)
+
+CreateButton(HatchTab, "  🎯  Auto Hatch Todos", 125).MouseButton1Click:Connect(function()
+    Notify("Hatch", "Chocando todos os ovos...")
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name:lower():find("egg") then
+            pcall(function()
+                local clickDetector = obj:FindFirstChildOfClass("ClickDetector")
+                if clickDetector then
+                    fireclickdetector(clickDetector)
+                end
+            end)
+        end
+    end
+end)
+
+CreateSlider(HatchTab, "Delay Hatch (s)", 165, 1, 10, 2, function(v) end)
+
+-- ============ ABA VENDER ============
+CreateToggle(SellTab, "Auto Sell", 5, false, function(state)
+    Config.AutoSell = state
+    Notify("Auto Sell", state and "Ativado" or "Desativado")
+end)
+
+CreateToggle(SellTab, "Auto Rebirth", 45, false, function(state)
+    Config.AutoRebirth = state
+    Notify("Auto Rebirth", state and "Ativado" or "Desativado")
+end)
+
+CreateButton(SellTab, "  💵  Vender Tudo Agora", 85).MouseButton1Click:Connect(function()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and (obj.Name:lower():find("sell") or obj.Name:lower():find("vender")) then
+            pcall(function()
+                local cd = obj:FindFirstChildOfClass("ClickDetector")
+                if cd then fireclickdetector(cd) end
+            end)
+        end
+    end
+    Notify("Vender", "Vendendo todos os ovos...")
+end)
+
+CreateButton(SellTab, "  🔄  Rebirth Agora", 125).MouseButton1Click:Connect(function()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name:lower():find("rebirth") then
+            pcall(function()
+                local cd = obj:FindFirstChildOfClass("ClickDetector")
+                if cd then fireclickdetector(cd) end
+            end)
+        end
+    end
+    Notify("Rebirth", "Executando rebirth...")
+end)
+
+-- ============ ABA PLAYER ============
+local function updateCharacter()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.WalkSpeed = Config.WalkSpeed
+        hum.JumpPower = Config.JumpPower
+        hum.UseJumpPower = true
+    end
+end
+
+CreateSlider(PlayerTab, "WalkSpeed", 5, 16, 500, 16, function(v)
+    Config.WalkSpeed = v
+    updateCharacter()
+end)
+
+CreateSlider(PlayerTab, "JumpPower", 60, 50, 500, 50, function(v)
+    Config.JumpPower = v
+    updateCharacter()
+end)
+
+CreateButton(PlayerTab, "  🏃  Resetar Speed", 120).MouseButton1Click:Connect(function()
+    Config.WalkSpeed = 16
+    Config.JumpPower = 50
+    updateCharacter()
+    Notify("Player", "Speed resetado")
+end)
+
+CreateButton(PlayerTab, "  🚀  Infinite Yield Fly", 160).MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local flying = true
+    local bodyVel = Instance.new("BodyVelocity", hrp)
+    bodyVel.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    bodyVel.Velocity = Vector3.new(0, 0, 0)
+    
+    local bodyGyro = Instance.new("BodyGyro", hrp)
+    bodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+    bodyGyro.P = 1e4
+    
+    local connection
+    connection = RunService.Heartbeat:Connect(function()
+        if not flying or not hrp.Parent then
+            bodyVel:Destroy()
+            bodyGyro:Destroy()
+            connection:Disconnect()
+            return
+        end
+        body
